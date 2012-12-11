@@ -9,6 +9,16 @@ class User
 
   has n, :accounts
 
+  def find number
+    p "User#find #{number}"
+    accounts.each do |account|
+      if result = account.find(number)
+        p "RESULT: #{result}"
+        return result
+      end
+    end
+  end
+
   def has_account? account
     accounts.include? account
   end
@@ -20,6 +30,13 @@ class User
   def url
     "/users/#{id}"
   end
-end
 
+  def self.authorized? login, password
+    User.all(login: login, password: password).one?
+  end
+
+  def self.find_by_login login
+    User.all(login: login).first
+  end
+end
 

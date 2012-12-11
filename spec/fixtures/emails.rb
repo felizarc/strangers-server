@@ -1,0 +1,2 @@
+EMAIL_FIXTURE = %|MIME-Version: 1.0\r\nReceived: by 10.231.147.131; Mon, 10 Dec 2012 10:57:31 -0800 (PST)\r\nDate: Mon, 10 Dec 2012 10:57:31 -0800\r\nMessage-ID: <CAAPJTra4e7JZKzyZ_YqpY==4n0tSrOhvFKoixDGYsSWXVKDQ=w@mail.gmail.com>\r\nSubject: Customize Gmail with colors and themes\r\nFrom: Gmail Team <mail-noreply@google.com>\r\nTo: Toto Stranger <totothestranger@gmail.com>\r\nContent-Type: text/plain; charset=ISO-8859-1\r\nContent-Transfer-Encoding: quoted-printable\r\n\r\nThis is a test\r\nNumber: 0102030405\r\nInt number: +33 (0)602030405\r\nBLAH!|
+

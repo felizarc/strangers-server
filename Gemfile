@@ -2,7 +2,6 @@ source :rubygems
 
 gem 'sinatra'
 gem 'sinatra-contrib'
-gem 'sinatra-basic-auth'
 gem 'foreman'
 gem 'data_mapper'
 gem 'mail'
