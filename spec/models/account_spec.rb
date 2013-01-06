@@ -6,7 +6,8 @@ shared_examples "a findable number" do
 
     let!(:mail) { stub(
       body: "This is a test\r\nNumber: #{number_in_email}\r\nBLAH!",
-      from: ["noreply@google.com"]
+      from: ["noreply@google.com"],
+      date: "2013-01-07 00:16:50 +0100"
     )}
 
     it "finds the number" do
@@ -14,7 +15,8 @@ shared_examples "a findable number" do
         'number' => number_in_email,
         'before' => "This is a test\r\nNumber: ",
         'after'  => "\r\nBLAH!",
-        'from'   => ["noreply@google.com"]
+        'from'   => ["noreply@google.com"],
+        'date'   => "2013-01-07 00:16:50 +0100"
       }
     end
   end

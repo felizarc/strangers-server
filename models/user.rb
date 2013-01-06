@@ -1,6 +1,5 @@
 class User
   include DataMapper::Resource
-  include Strangers::EncryptPassword
 
   property :id, Serial
   property :login, String, required: true, unique: true
@@ -42,6 +41,15 @@ class User
 
   def self.find_by_login login
     User.all(login: login).first
+  end
+
+private
+
+  def encrypt_password
+    if password
+      self.password_hash = Sinatra::Security::Password::Hashing.encrypt(password)
+      self.password = nil
+    end
   end
 
 end

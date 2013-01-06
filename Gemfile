@@ -8,6 +8,7 @@ gem 'foreman'
 gem 'data_mapper'
 gem 'mail'
 gem 'phony'
+gem 'gibberish'
 
 group :development, :test do
   gem 'sqlite3'

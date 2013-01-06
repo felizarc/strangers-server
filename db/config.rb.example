@@ -1,3 +1,5 @@
+TOKEN = 'my sup3r p4ssw0rd!' # AES token
+
 configure :development do
   # DataMapper::Logger.new($stdout, :debug) # displays SQL queries
   DataMapper.setup(:default, 'sqlite:db/database.sqlite3')

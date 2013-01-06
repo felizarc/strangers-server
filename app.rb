@@ -118,7 +118,7 @@ post '/find' do
         'email_searched' => thread[:processed].to_i,
       })
     else
-      'WTF'
+      "WTF: #{thread.value.inspect}"
     end
   end
 end

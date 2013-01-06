@@ -1,9 +1,9 @@
 require 'net/imap'
 require 'mail'
+require 'gibberish'
 
 class Account
   include DataMapper::Resource
-  include Strangers::EncryptPassword
 
   property :id, Serial
   property :user_id, Integer, required: true
@@ -11,7 +11,7 @@ class Account
   property :port, Integer, required: true
   property :username, String, required: true
   property :password, String
-  property :password_hash, Text
+  property :crypted_password, Text
   property :folder, String
   property :description, Text
   property :created_at, DateTime
@@ -20,9 +20,10 @@ class Account
   before :save, :encrypt_password
 
   def find number
-    p "Account#find #{number}"
     fetch_messages do |message|
+      # p message.subject
       if result = find_in_body(message, number)
+        result['account'] = "#{username}@#{host}"
         return result
       end
       Thread.current[:processed] ||= 0
@@ -40,7 +41,6 @@ class Account
   end
 
   def find_in_body mail, number
-    p "Account#find_in_body #{number}"
 # p "FIB #{mail} #{number}"
     body = strip_html_tags(mail.body.to_s)
     # body.gsub! /\s/, ''
@@ -52,8 +52,8 @@ class Account
       match = body.match regexp
       if match
 # p "MATCH #{match.inspect}"
-        keys = match.names + %w(from)
-        values = match.captures + [mail.from]
+        keys = match.names + %w(from date)
+        values = match.captures + [mail.from, mail.date.to_s]
 
         hash = Hash[keys.zip values]
         # hash['before'].gsub! /\s+/, ' '
@@ -70,13 +70,32 @@ class Account
 
 private
 
+  def cipher
+    @cipher ||= Gibberish::AES.new(TOKEN)
+  end
+
+  def decrypted_password
+    cipher.dec(crypted_password)
+  end
+
+  def encrypt_password
+    if password
+      self.crypted_password = cipher.enc(password)
+      self.password = nil
+    end
+  end
+
   def fetch_messages
-    imap = Net::IMAP.new(host, ssl: true)
+    imap = Net::IMAP.new(host, port: port, ssl: true)
     # p imap.capability
-    imap.login(username, password)
+    p "Login to #{username}@#{host}"
+    imap.login(username, decrypted_password)
+    # imap.authenticate('PLAIN', username, decrypted_password)
     imap.examine(folder || 'INBOX') # open in read-only
-    imap.search(["ALL", "SINCE", "9-Dec-2012"]).each do |message_id|
-      msg = imap.fetch(message_id,'RFC822')[0].attr['RFC822']
+
+    # imap.search(["ALL"]).each do |message_id|
+    imap.sort(["REVERSE", "DATE"], ["ALL"], "US-ASCII").each do |message_id|
+      msg = imap.fetch(message_id, 'RFC822')[0].attr['RFC822']
       yield Mail.read_from_string msg
     end
   end
