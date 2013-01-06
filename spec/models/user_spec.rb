@@ -1,6 +1,12 @@
 require 'spec_helper'
 
 describe User do
+  describe ".authorized?" do
+    it "returns false for non-existent users" do
+      User.authorized?('IDontExist', 'whatever').should == false
+    end
+  end
+
   describe "#save" do
     it "hashes the password" do
       user = User.new user_attributes

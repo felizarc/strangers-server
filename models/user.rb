@@ -36,7 +36,7 @@ class User
   end
 
   def self.authorized? login, password
-    user = find_by_login login
+    return false unless user = find_by_login(login)
     Sinatra::Security::Password::Hashing.check(password, user.password_hash)
   end
 
