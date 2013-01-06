@@ -7,13 +7,13 @@ Search for phone numbers in emails.
 ### Unauthenticated requests
 
 - GET /
-- GET /users/:login
 - POST /users/new
 
 ### Authenticated requests
 
 You must pass the current user credentials using [HTTP basic access authentication](https://en.wikipedia.org/wiki/Basic_access_authentication) for these requests.
 
+- GET /ping
 - GET /accounts
 - POST /accounts/new
 - PUT /accounts/:id

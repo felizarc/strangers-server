@@ -3,13 +3,9 @@ require 'spec_helper'
 describe 'App' do
   include Rack::Test::Methods
 
-  it "returns whether a user exists" do
-    create_user(login: 'toto')
-    get "/users/toto"
-    last_response.status.should == 200
-
-    get "/users/no"
-    last_response.status.should == 404
+  it "returns 401 if authentication is unsuccessful" do
+    get "/ping"
+    last_response.status.should == 401
   end
 
   it "adds a new user" do
@@ -30,6 +26,11 @@ describe 'App' do
     before do
       @user ||= create_user(password: 'toto')
       authorize @user.login, 'toto' # HTTP basic auth
+    end
+
+    it "returns 200 if authentication is successful" do
+      get "/ping"
+      last_response.status.should == 200
     end
 
     it "lists all accounts" do

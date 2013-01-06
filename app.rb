@@ -23,7 +23,6 @@ end
 WHITELIST = [
   ['GET',  '/'],
   ['GET',  '/reset'], # FIXME
-  ['GET',  /\/users\/.+/],
   ['POST', '/users/new']
 ]
 
@@ -46,8 +45,8 @@ get '/reset' do
   'Nuked!'
 end
 
-get '/users/:login' do
-  status(User.find_by_login(params[:login]) ? 200 : 404)
+get '/ping' do
+  'pong'
 end
 
 post '/users/new' do
