@@ -7,6 +7,7 @@ Search for phone numbers in emails.
 ### Unauthenticated requests
 
 - GET /
+- GET /users/:login
 - POST /users/new
 
 ### Authenticated requests

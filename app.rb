@@ -23,13 +23,17 @@ end
 WHITELIST = [
   ['GET',  '/'],
   ['GET',  '/reset'], # FIXME
+  ['GET',  /\/users\/.+/],
   ['POST', '/users/new']
 ]
 
 before do
-  unless WHITELIST.include? [request.request_method, request.path]
-    authenticate!
+  return if WHITELIST.any? do |method, path|
+    path = Regexp.escape(path) if path.is_a? String
+    method == request.request_method and request.path =~ /\A#{path}\Z/
   end
+
+  authenticate!
 end
 
 get '/' do
@@ -40,6 +44,10 @@ end
 get '/reset' do
   reset!
   'Nuked!'
+end
+
+get '/users/:login' do
+  status(User.find_by_login(params[:login]) ? 200 : 404)
 end
 
 post '/users/new' do

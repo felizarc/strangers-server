@@ -3,6 +3,15 @@ require 'spec_helper'
 describe 'App' do
   include Rack::Test::Methods
 
+  it "returns whether a user exists" do
+    create_user(login: 'toto')
+    get "/users/toto"
+    last_response.status.should == 200
+
+    get "/users/no"
+    last_response.status.should == 404
+  end
+
   it "adds a new user" do
     expect {
       post "/users/new", user: user_attributes
