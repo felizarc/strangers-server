@@ -3,17 +3,21 @@ require 'mail'
 
 class Account
   include DataMapper::Resource
+  include Strangers::EncryptPassword
 
   property :id, Serial
   property :user_id, Integer, required: true
   property :host, String, required: true
   property :port, Integer, required: true
   property :username, String, required: true
-  property :password, String, required: true
+  property :password, String
+  property :password_hash, Text
   property :folder, String
   property :description, Text
   property :created_at, DateTime
   property :updated_at, DateTime
+
+  before :save, :encrypt_password
 
   def find number
     p "Account#find #{number}"

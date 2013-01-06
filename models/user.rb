@@ -1,13 +1,17 @@
 class User
   include DataMapper::Resource
+  include Strangers::EncryptPassword
 
   property :id, Serial
   property :login, String, required: true, unique: true
-  property :password, String, required: true #, min: 8
+  property :password, String
+  property :password_hash, Text
   property :created_at, DateTime
   property :updated_at, DateTime
 
   has n, :accounts
+
+  before :save, :encrypt_password
 
   def find number
     p "User#find #{number}"
@@ -32,11 +36,13 @@ class User
   end
 
   def self.authorized? login, password
-    User.all(login: login, password: password).one?
+    user = find_by_login login
+    Sinatra::Security::Password::Hashing.check(password, user.password_hash)
   end
 
   def self.find_by_login login
     User.all(login: login).first
   end
+
 end
 

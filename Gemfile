@@ -1,7 +1,9 @@
 source :rubygems
 
+gem 'thin'
 gem 'sinatra'
 gem 'sinatra-contrib'
+gem 'sinatra-security'
 gem 'foreman'
 gem 'data_mapper'
 gem 'mail'

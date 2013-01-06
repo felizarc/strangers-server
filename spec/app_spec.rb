@@ -19,8 +19,8 @@ describe 'App' do
 
   context "for an authenticated user" do
     before do
-      @user ||= create_user
-      authorize @user.login, @user.password # HTTP basic auth
+      @user ||= create_user(password: 'toto')
+      authorize @user.login, 'toto' # HTTP basic auth
     end
 
     it "lists all accounts" do

@@ -12,12 +12,12 @@ DataMapper.finalize
 def reset!
   DataMapper.auto_migrate!
 
-  toto = User.create!(
+  toto = User.create(
     login: 'toto',
     password: 'super toto'
   )
 
-  Account.create!(
+  Account.create(
     user_id: toto.id,
     host: 'imap.googlemail.com',
     port: 993,

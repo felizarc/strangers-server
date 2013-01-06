@@ -26,7 +26,7 @@ def account_attributes
     host: 'imap.googlemail.com',
     port: 993,
     username: 'foo',
-    password: 'bar'
+    password: 'PASS'
   }
 end
 

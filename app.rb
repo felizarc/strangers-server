@@ -1,5 +1,6 @@
 require 'sinatra'
 require 'sinatra/json'
+require 'sinatra/security'
 require 'rack-livereload'
 require 'sinatra/reloader' if development?
 require 'data_mapper'
