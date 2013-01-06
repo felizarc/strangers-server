@@ -3,40 +3,18 @@ require 'spec_helper'
 describe 'App' do
   include Rack::Test::Methods
 
-  def app
-    Sinatra::Application
-  end
-
-  def user_attributes
-    {
-      login: 'toto',
-      password: 'super toto'
-    }
-  end
-
-  def account_attributes
-    {
-      host: 'imap.googlemail.com',
-      port: 993,
-      username: 'foo',
-      password: 'bar'
-    }
-  end
-
-  def create_user attributes = {}
-    User.create(user_attributes.merge(attributes))
-  end
-
-  def create_account attributes = {}
-    Account.create(account_attributes.merge(attributes))
-  end
-
   it "adds a new user" do
     expect {
       post "/users/new", user: user_attributes
     }.to change{ User.count }.by(1)
 
     last_response.status.should == 201
+  end
+
+  it "requires auth" do
+    get '/accounts'
+
+    last_response.status.should == 401
   end
 
   context "for an authenticated user" do
@@ -97,7 +75,7 @@ describe 'App' do
       last_response.status.should == 200
     end
 
-    it "can post a number to look up" do
+    it "posts a number to look up" do
       post '/find', number: '+33102030405'
 
       last_response.status.should == 200

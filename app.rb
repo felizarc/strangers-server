@@ -1,36 +1,35 @@
 require 'sinatra'
-require 'sinatra/basic_auth'
 require 'sinatra/json'
 require 'rack-livereload'
 require 'sinatra/reloader' if development?
 require 'data_mapper'
 require 'dm-core'
 
-use Rack::LiveReload
+Dir["./{lib,models}/*.rb"].each { |file| require file }
+require './db/config.rb'
+
+# use Rack::LiveReload
 # use Rack::Session::Cookie
 
-#################
-# Configuration #
-#################
-
-Dir["./models/*.rb"].each { |model| require model }
-
-configure :development do
-  # DataMapper::Logger.new($stdout, :debug) # displays SQL queries
-  DataMapper.setup(:default, 'sqlite:db/database.sqlite3')
-end
-configure :test do
-  DataMapper.setup(:default, 'sqlite::memory:')
-end
-DataMapper::Model.raise_on_save_failure = true
-DataMapper.finalize
-
 set :json_encoder, :to_json
-set :show_exceptions, true # XXX
+set :show_exceptions, false # XXX
+set :server, :thin # for streaming
 
-#######################
-# RESTful application #
-#######################
+helpers do
+  include Sinatra::Authorization
+end
+
+WHITELIST = [
+  ['GET',  '/'],
+  ['GET',  '/reset'], # FIXME
+  ['POST', '/users/new']
+]
+
+before do
+  unless WHITELIST.include? [request.request_method, request.path]
+    authenticate!
+  end
+end
 
 get '/' do
   'Hello stranger!'
@@ -42,7 +41,6 @@ get '/reset' do
   'Nuked!'
 end
 
-# Creates a new user if valid
 post '/users/new' do
   user = User.new(params[:user])
   if user.save
@@ -53,85 +51,73 @@ post '/users/new' do
   end
 end
 
-authorize do |login, password|
-  !User.all(login: login, password: password).empty?
+get '/accounts' do
+  json Account.all(user_id: current_user.id)
 end
 
-helpers do
-  def current_user
-    user = User.all(login: auth.credentials.first)
-    user.empty? ? nil : user.first
+post '/accounts/new' do
+  account = Account.new(params[:account])
+  account.user_id = current_user.id
+
+  if account.save
+    status 201
+  else
+    status 422
+    account.errors.values.join
   end
 end
 
-protect do
+put '/accounts/:id' do
+  account = Account.get(params[:id])
 
-  # Returns all open services
-  get '/accounts' do
-    json Account.all(user_id: current_user.id)
+  halt 404 unless account
+  halt 401 unless current_user.has_account?(account)
+
+  if account.update(params[:account])
+    status 200
+  else
+    status 422
+    account.errors.values.join
   end
+end
 
-  # Creates a new user if valid
-  post '/accounts/new' do
-    account = Account.new(params[:account])
-    account.user_id = current_user.id
+delete '/accounts/:id' do
+  account = Account.get(params[:id])
 
-    if account.save
-      status 201
+  halt 404 unless account
+  halt 401 unless current_user.has_account?(account)
+
+  account.destroy
+end
+
+post '/find' do
+  thread = Thread.new { current_user.find params[:number] }
+  thread.run
+
+  stream do |out|
+    while thread.alive? do
+      status = {
+        'status' => 'searching',
+        'email_searched' => thread[:processed].to_i
+      }
+      out << "#{status}\n"
+      sleep 1
+    end
+
+    out << if thread.value.is_a? Hash
+      status = thread.value.merge({
+        'status' => 'found',
+        'email_searched' => thread[:processed].to_i,
+      })
     else
-      status 422
-      account.errors.values.join
+      'WTF'
     end
   end
-
-  put '/accounts/:id' do
-    account = Account.get(params[:id])
-
-    halt 404 unless account
-    halt 401 unless current_user.has_account?(account)
-
-    if account.update(params[:account])
-      status 200
-    else
-      status 422
-      account.errors.values.join
-    end
-  end
-
-  delete '/accounts/:id' do
-    account = Account.get(params[:id])
-
-    halt 404 unless account
-    halt 401 unless current_user.has_account?(account)
-
-    account.destroy
-  end
-
-  post '/find' do
-    number = params[:number]
-    # TODO
-  end
-
-  delete '/user' do
-    current_user.destroy
-  end
-
 end
 
-def reset!
-  DataMapper.auto_migrate!
-
-  toto = User.create!(
-    login: 'toto',
-    password: 'super toto'
-  )
-
-  Account.create!(
-    user_id: toto.id,
-    host: 'imap.googlemail.com',
-    port: 993,
-    username: 'totothestranger@gmail.com',
-    password: 'Toto aime bien IF42 !'
-  )
+delete '/user' do
+  current_user.destroy
 end
+
+reset! # FIXME
 

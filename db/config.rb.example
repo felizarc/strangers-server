@@ -1,0 +1,27 @@
+configure :development do
+  # DataMapper::Logger.new($stdout, :debug) # displays SQL queries
+  DataMapper.setup(:default, 'sqlite:db/database.sqlite3')
+end
+configure :test do
+  DataMapper.setup(:default, 'sqlite::memory:')
+end
+DataMapper::Model.raise_on_save_failure = true
+DataMapper.finalize
+
+# Just some seeds
+def reset!
+  DataMapper.auto_migrate!
+
+  toto = User.create!(
+    login: 'toto',
+    password: 'super toto'
+  )
+
+  Account.create!(
+    user_id: toto.id,
+    host: 'imap.googlemail.com',
+    port: 993,
+    username: 'foo',
+    password: 'bar'
+  )
+end
