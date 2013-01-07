@@ -13,13 +13,13 @@ class User
   before :save, :encrypt_password
 
   def find number
-    p "User#find #{number}"
     accounts.each do |account|
       if result = account.find(number)
-        p "RESULT: #{result}"
         return result
       end
     end
+
+    { status: 'not_found' }
   end
 
   def has_account? account

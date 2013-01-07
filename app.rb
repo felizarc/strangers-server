@@ -1,5 +1,6 @@
 require 'sinatra'
 require 'sinatra/json'
+require 'json'
 require 'sinatra/security'
 require 'rack-livereload'
 require 'sinatra/reloader' if development?
@@ -9,12 +10,8 @@ require 'dm-core'
 Dir["./{lib,models}/*.rb"].each { |file| require file }
 require './db/config.rb'
 
-# use Rack::LiveReload
-# use Rack::Session::Cookie
-
 set :json_encoder, :to_json
-set :show_exceptions, false # XXX
-set :server, :thin # for streaming
+set :server, :thin
 
 helpers do
   include Sinatra::Authorization
@@ -22,7 +19,7 @@ end
 
 WHITELIST = [
   ['GET',  '/'],
-  ['GET',  '/reset'], # FIXME
+  ['GET',  '/reset'],
   ['POST', '/users/new']
 ]
 
@@ -99,28 +96,9 @@ delete '/accounts/:id' do
 end
 
 post '/find' do
-  thread = Thread.new { current_user.find params[:number] }
-  thread.run
+  result = current_user.find params[:number]
 
-  stream do |out|
-    while thread.alive? do
-      status = {
-        'status' => 'searching',
-        'email_searched' => thread[:processed].to_i
-      }
-      out << "#{status}\n"
-      sleep 1
-    end
-
-    out << if thread.value.is_a? Hash
-      status = thread.value.merge({
-        'status' => 'found',
-        'email_searched' => thread[:processed].to_i,
-      })
-    else
-      "WTF: #{thread.value.inspect}"
-    end
-  end
+  json(result, encoder: JSON)
 end
 
 delete '/user' do

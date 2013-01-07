@@ -20,16 +20,56 @@ class Account
   before :save, :encrypt_password
 
   def find number
-    fetch_messages do |message|
-      # p message.subject
-      if result = find_in_body(message, number)
-        result['account'] = "#{username}@#{host}"
-        return result
-      end
-      Thread.current[:processed] ||= 0
-      Thread.current[:processed] += 1
+    # http://www.ruby-doc.org/stdlib-1.9.3/libdoc/net/imap/rdoc/Net/IMAP.html#method-c-new
+    @imap = Net::IMAP.new(host, port, true, nil, false)
+
+    @imap.login(username, decrypted_password)
+    @imap.examine(folder || 'INBOX') # open in read-only
+
+    if result = find_in_body(number)
+      result['account'] = to_s
+      result['status'] = 'found'
+      return result
     end
+
     nil
+  end
+
+  def find_in_body number
+    phone_number = PhoneNumber.new number
+    formats = phone_number.formats
+
+    # generate a lovely IMAP search query
+    search_request = ["OR"] * (formats.size - 1)
+    search_request << ['BODY'] + formats.join(' BODY ').split
+
+    messages = @imap.search search_request.join(' ')
+
+    messages.reverse.each do |message_id|
+      msg = @imap.fetch(message_id, 'RFC822')[0].attr['RFC822']
+      mail = Mail.read_from_string msg
+
+      body = strip_html_tags(mail.body.to_s)
+      formats.each do |formatted_number|
+        regexp = /(?<before>.{,100})(?<number>#{Regexp.escape(formatted_number)})(?<after>.{,100})/m
+        match = body.match regexp
+        if match
+          keys = match.names + %w(from date)
+          values = match.captures + [mail.from, mail.date.to_s]
+
+          hash = Hash[keys.zip values]
+          %w(before after).each { |key| hash[key] = sanitize hash[key] }
+
+          return hash
+        end
+      end
+    end
+
+    nil
+  end
+
+  def find_in_vcard
+    # TODO
   end
 
   def to_s
@@ -38,28 +78,6 @@ class Account
 
   def url
     "/accounts/#{id}"
-  end
-
-  def find_in_body mail, number
-    body = strip_html_tags(mail.body.to_s)
-    phone_number = PhoneNumber.new number
-
-    phone_number.formats do |format, formatted_number|
-      regexp = /(?<before>.{,100})(?<number>#{Regexp.escape(formatted_number)})(?<after>.{,100})/m
-      match = body.match regexp
-      if match
-        keys = match.names + %w(from date)
-        values = match.captures + [mail.from, mail.date.to_s]
-
-        hash = Hash[keys.zip values]
-        return hash
-      end
-    end
-    nil
-  end
-
-  def find_in_vcard
-    # TODO
   end
 
 private
@@ -79,30 +97,13 @@ private
     end
   end
 
-  def fetch_messages
-    # http://www.ruby-doc.org/stdlib-1.9.3/libdoc/net/imap/rdoc/Net/IMAP.html#method-c-new
-    imap = Net::IMAP.new(host, port, true, nil, false)
-
-    p "Login to #{username}@#{host}"
-    imap.login(username, decrypted_password)
-    imap.examine(folder || 'INBOX') # open in read-only
-
-    messages = if imap.capability.include? 'SORT'
-      # if the server supports SORT, start with most recent emails
-      imap.sort(["REVERSE", "DATE"], ["ALL"], "US-ASCII")
-    else
-      # thanks GMail...
-      imap.search(["ALL"])
-    end
-
-    messages.each do |message_id|
-      msg = imap.fetch(message_id, 'RFC822')[0].attr['RFC822']
-      yield Mail.read_from_string msg
-    end
-  end
-
   def strip_html_tags string
     string.gsub(/<\/?[^>]*>/, '')
+  end
+
+  def sanitize string
+    return string unless string.is_a? String
+    string.force_encoding('ISO-8859-1').encode('UTF-8').gsub!(/\s+/, ' ').to_s
   end
 end
 

@@ -9,11 +9,11 @@ class PhoneNumber
   end
 
   def formats
-    [:international, :international_relative, :national].each do |format|
-      ['', '.', '-'].each do |spaces|
-        yield format, Phony.formatted(@number, format: format, spaces: spaces)
+    [:international, :international_relative, :national].map do |format|
+      ['', '.', '-'].map do |spaces|
+        Phony.formatted(@number, format: format, spaces: spaces)
       end
-    end
+    end.flatten
   end
 
 private
