@@ -41,23 +41,17 @@ class Account
   end
 
   def find_in_body mail, number
-# p "FIB #{mail} #{number}"
     body = strip_html_tags(mail.body.to_s)
-    # body.gsub! /\s/, ''
     phone_number = PhoneNumber.new number
 
     phone_number.formats do |format, formatted_number|
       regexp = /(?<before>.{,100})(?<number>#{Regexp.escape(formatted_number)})(?<after>.{,100})/m
-# p regexp
       match = body.match regexp
       if match
-# p "MATCH #{match.inspect}"
         keys = match.names + %w(from date)
         values = match.captures + [mail.from, mail.date.to_s]
 
         hash = Hash[keys.zip values]
-        # hash['before'].gsub! /\s+/, ' '
-        # hash['number'] = Phony.formatted(hash['number'], format: :+)
         return hash
       end
     end
@@ -86,15 +80,22 @@ private
   end
 
   def fetch_messages
-    imap = Net::IMAP.new(host, port: port, ssl: true)
-    # p imap.capability
+    # http://www.ruby-doc.org/stdlib-1.9.3/libdoc/net/imap/rdoc/Net/IMAP.html#method-c-new
+    imap = Net::IMAP.new(host, port, true, nil, false)
+
     p "Login to #{username}@#{host}"
     imap.login(username, decrypted_password)
-    # imap.authenticate('PLAIN', username, decrypted_password)
     imap.examine(folder || 'INBOX') # open in read-only
 
-    # imap.search(["ALL"]).each do |message_id|
-    imap.sort(["REVERSE", "DATE"], ["ALL"], "US-ASCII").each do |message_id|
+    messages = if imap.capability.include? 'SORT'
+      # if the server supports SORT, start with most recent emails
+      imap.sort(["REVERSE", "DATE"], ["ALL"], "US-ASCII")
+    else
+      # thanks GMail...
+      imap.search(["ALL"])
+    end
+
+    messages.each do |message_id|
       msg = imap.fetch(message_id, 'RFC822')[0].attr['RFC822']
       yield Mail.read_from_string msg
     end
