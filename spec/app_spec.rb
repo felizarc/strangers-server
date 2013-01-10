@@ -92,10 +92,13 @@ describe 'App' do
     end
 
     it "can be deleted" do
+      account = create_account(user_id: @user.id)
+
       expect {
         delete '/user'
       }.to change{ User.count }.by(-1)
 
+      Account.count(id: account.id).should be_zero
       last_response.status.should == 200
     end
   end

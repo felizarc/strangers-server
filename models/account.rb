@@ -17,6 +17,8 @@ class Account
   property :created_at, DateTime
   property :updated_at, DateTime
 
+  belongs_to :user
+
   before :save, :encrypt_password
 
   def find number
