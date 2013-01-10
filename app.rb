@@ -105,5 +105,3 @@ delete '/user' do
   current_user.destroy
 end
 
-reset! # FIXME
-
